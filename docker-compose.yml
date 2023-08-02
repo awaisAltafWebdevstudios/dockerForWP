@@ -1,0 +1,91 @@
+version: '3'
+services:
+  # Wordpress
+  wordpress:
+    container_name: ${PROJECT_NAME}-wp
+    image: wordpress:latest
+    depends_on:
+      - mysql
+    links:
+      - mysql
+    ports:
+      - ${WP_LOCAL_PORT_MAP}
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: mysql:${LOCAL_MYSQL_PORT}
+      WORDPRESS_DB_USER: ${LOCAL_MYSQL_USER}
+      WORDPRESS_DB_PASSWORD: ${LOCAL_MYSQL_PASSWORD}
+      WORDPRESS_DB_NAME: ${LOCAL_MYSQL_DB_NAME}
+      WORDPRESS_DEBUG: 1
+      WORDPRESS_TABLE_PREFIX: ${WP_DB_PREFIX}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('FS_METHOD', 'direct');
+        define('SCRIPT_DEBUG', true);
+    volumes:
+      - ./.srv/wordpress/:/var/www/html
+      - ./.srv/log/:/var/log
+      - ./custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - dockerwp
+  # WP-CLI
+  wpcli:
+    container_name: ${PROJECT_NAME}-cli
+    depends_on:
+      - mysql
+      - wordpress
+    image: wordpress:cli
+    links:
+      - mysql:mysql
+    entrypoint: wp
+    command: "--info"
+    environment:
+      WORDPRESS_DB_HOST: mysql:${LOCAL_MYSQL_PORT}
+      WORDPRESS_DB_USER: ${LOCAL_MYSQL_USER}
+      WORDPRESS_DB_PASSWORD: ${LOCAL_MYSQL_PASSWORD}
+      WORDPRESS_DB_NAME: ${LOCAL_MYSQL_DB_NAME}
+      WORDPRESS_DEBUG: 1
+      WORDPRESS_TABLE_PREFIX: ${WP_DB_PREFIX}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('FS_METHOD', 'direct');
+    volumes:
+      - ./.srv/wordpress/:/var/www/html
+      - ./.srv/log/:/var/log
+      - ./custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - dockerwp
+  # Database
+  mysql:
+    container_name: ${PROJECT_NAME}-mysql
+    image: mysql:5.7
+    restart: always
+    ports:
+      - ${LOCAL_MYSQL_PORT}:${LOCAL_MYSQL_PORT}
+    volumes:
+      - "./.srv/database:/var/lib/mysql"
+    environment:
+      MYSQL_ROOT_PASSWORD: wordpress
+      MYSQL_DATABASE: ${LOCAL_MYSQL_DB_NAME}
+      MYSQL_USER: ${LOCAL_MYSQL_USER}
+      MYSQL_PASSWORD: ${LOCAL_MYSQL_PASSWORD}
+    networks:
+      - dockerwp
+  # phpmyadmin
+  phpmyadmin:
+    container_name: ${PROJECT_NAME}-phpmyadmin
+    depends_on:
+      - mysql
+    image: phpmyadmin
+    restart: always
+    ports:
+      - ${LOCAL_PHPMYADMIN_PORT}
+    environment:
+      PMA_HOST: mysql:${LOCAL_MYSQL_PORT}
+      MYSQL_ROOT_PASSWORD: ${LOCAL_MYSQL_ROOT_PASSWORD}
+    networks:
+      - dockerwp
+networks:
+  dockerwp:
+volumes:
+  db_data: {}
+  wordpress_data: {}
+  wordpress: {}
