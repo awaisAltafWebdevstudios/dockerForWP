@@ -1,6 +1,16 @@
 #! /bin/bash
 source .env
 
+# create a site folder user the $PROJECT_NAME
+mkdir -p / ${PROJECT_NAME}-env
+# move docker-compose to the $PROJECT_NAME folder
+mv docker-compose.yml /${PROJECT_NAME}-env
+# copy the .env to the $PROJECT_NAME folder
+cp .env /${PROJECT_NAME}-env
+
+#move to the new project folder
+cd /$PROJECT_NAME
+
 if [ 'MAC' === "$LOCAL_PLATFORM" ]; 
 then
     # custom commands
@@ -15,6 +25,7 @@ else
     # custom commands
 fi
 
+# run docker-compose
 docker-compose up -d
 
 # get and import database
@@ -26,11 +37,13 @@ docker-compose up -d
 
 # Remove the wp-content folder
 rm -rf /wp-content
-# git pull the repo
-# what do we need to do to athenticate?
-git pull $PROJECT_REPO_URL
+# Create a new wp-content folder
+mkdir -p /wp-content
+# move the orgignal repo content to the new folder
+mv ../$PROJECT_NAME/* /wp-content
+
 # move to the repo root folder
-cd $COMPOSER_LOCATION
+cd wp-content
 # build out dependencies
 composer  install
 composer run build
